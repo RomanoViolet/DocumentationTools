@@ -8,5 +8,7 @@
     "editor.formatOnPaste": true,
     "files.insertFinalNewline": true,
     "terminal.integrated.cwd": ".",
-    "plantuml.jar": "/app/plantuml.jar"
+    "plantuml.jar": "/app/plantuml.jar",
+    "plantuml.java": "/usr/bin/java",
+    "plantuml.previewAutoUpdate": true
 }

@@ -1,5 +1,5 @@
 {
-    "name": "C++",
+    "name": "Documentation",
     "dockerFile": "Dockerfile",
     "runArgs": [
         "-u",
@@ -52,6 +52,5 @@
         "jebbs.plantuml",
         "docsmsft.docs-markdown",
         "yzhang.markdown-all-in-one"
-        
     ]
 }
