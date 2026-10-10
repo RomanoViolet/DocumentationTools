@@ -1,27 +1,20 @@
-FROM alpine:3.9
-#
-# PlantUML docker from: https://github.com/miy4/docker-plantuml/blob/master/Dockerfile
-# ASCIIDoctor docker from: https://github.com/asciidoctor/docker-asciidoctor
-#
+FROM ubuntu:24.04
 
-#LABEL MAINTAINERS="Guillaume Scheibel <guillaume.scheibel@gmail.com>, Damien DUPORTAL <damien.duportal@gmail.com>"
+LABEL documentationdocker.version="0.2" \
+  vendor="Devendra Rai, rai.devendra@yahoo.co.uk" \
+  documentationdocker.release-date="2026-10-10" \
+  documentationdocker.version.is-production="No"
 
-LABEL documentationdocker.version="0.1-beta"
-LABEL vendor="Devendra Rai, rai.devendra@yahoo.co.uk"
-LABEL documentationdocker.release-date="2020-30-03"
-LABEL documentationdocker.version.is-production="No"
+ARG USERNAME=ubuntu
 
-ARG USERNAME=dockeruser
-ARG USER_UID=1000
-ARG USER_GID=$USER_UID
-
-ARG asciidoctor_version=2.0.10
+ARG asciidoctor_version=2.0.26
 ARG asciidoctor_confluence_version=0.0.2
-ARG asciidoctor_pdf_version=1.5.0.alpha.18
-ARG asciidoctor_diagram_version=1.5.18
-ARG asciidoctor_epub3_version=1.5.0.alpha.9
+ARG asciidoctor_pdf_version=2.3.27
+ARG asciidoctor_diagram_version=3.2.1
+ARG asciidoctor_epub3_version=2.3.0
 ARG asciidoctor_mathematical_version=0.3.0
-ARG asciidoctor_revealjs_version=2.0.0
+ARG asciidoctor_revealjs_version=5.2.0
+ARG plantuml_version=1.2019.13
 
 ENV ASCIIDOCTOR_VERSION=${asciidoctor_version} \
   ASCIIDOCTOR_CONFLUENCE_VERSION=${asciidoctor_confluence_version} \
@@ -30,90 +23,89 @@ ENV ASCIIDOCTOR_VERSION=${asciidoctor_version} \
   ASCIIDOCTOR_EPUB3_VERSION=${asciidoctor_epub3_version} \
   ASCIIDOCTOR_MATHEMATICAL_VERSION=${asciidoctor_mathematical_version} \
   ASCIIDOCTOR_REVEALJS_VERSION=${asciidoctor_revealjs_version} \
-  PLANTUML_VERSION=1.2019.13 \
-  LANG=en_US.UTF-8
+  PLANTUML_VERSION=${plantuml_version} \
+  LANG=en_US.UTF-8 \
+  PATH="/opt/venv/bin:${PATH}"
 
-# Installing package required for the runtime of
-# any of the asciidoctor-* functionnalities
-RUN apk add --no-cache \
-  bash \
-  curl \
-  ca-certificates \
-  findutils \
-  font-bakoma-ttf \
-  graphviz \
-  inotify-tools \
-  make \
-  openjdk8-jre \
-  py2-pillow \
-  py-setuptools \
-  python2 \
-  ruby \
-  ruby-mathematical \
-  ttf-liberation \
-  unzip \
-  which \
-  git \
-  graphviz ttf-droid ttf-droid-nonlatin \
-  &&  apk add --no-cache \
-  --repository https://nl.alpinelinux.org/alpine/edge/testing \
-  font-ipa \
-  &&  mkdir /app \
-  &&  curl -L https://sourceforge.net/projects/plantuml/files/plantuml.${PLANTUML_VERSION}.jar/download -o /app/plantuml.jar \
-  #
-  # Installing Ruby Gems needed in the image
-  # including asciidoctor itself
-  &&  apk add --no-cache --virtual .rubymakedepends \
-  build-base \
-  libxml2-dev \
-  ruby-dev \
+RUN apt-get update \
+  && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    bash \
+    build-essential \
+    ca-certificates \
+    calibre \
+    curl \
+    findutils \
+    fonts-droid-fallback \
+    fonts-ipaexfont-gothic \
+    fonts-liberation \
+    git \
+    graphviz \
+    inotify-tools \
+    libgdk-pixbuf-2.0-dev \
+    libglib2.0-dev \
+    libcairo2-dev \
+    libffi-dev \
+    libgmp-dev \
+    libpango1.0-dev \
+    libxml2-dev \
+    libxslt1-dev \
+    locales \
+    make \
+    openjdk-17-jre-headless \
+    pandoc \
+    pkg-config \
+    bison \
+    cmake \
+    flex \
+    python-is-python3 \
+    python3 \
+    python3-dev \
+    python3-pip \
+    python3-venv \
+    ruby \
+    ruby-dev \
+    sudo \
+    texlive-fonts-recommended \
+    unzip \
+  && sed -i 's/^# *en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
+  && locale-gen \
+  && mkdir -p /app \
+  && curl -fSL "https://sourceforge.net/projects/plantuml/files/plantuml.${PLANTUML_VERSION}.jar/download" \
+    -o /app/plantuml.jar \
+  && gem install --no-document "asciidoctor-confluence:${ASCIIDOCTOR_CONFLUENCE_VERSION}" \
   && gem install --no-document \
-  "asciidoctor:${ASCIIDOCTOR_VERSION}" \
-  "asciidoctor-confluence:${ASCIIDOCTOR_CONFLUENCE_VERSION}" \
-  "asciidoctor-diagram:${ASCIIDOCTOR_DIAGRAM_VERSION}" \
-  "asciidoctor-epub3:${ASCIIDOCTOR_EPUB3_VERSION}" \
-  "asciidoctor-mathematical:${ASCIIDOCTOR_MATHEMATICAL_VERSION}" \
-  asciimath \
-  "asciidoctor-pdf:${ASCIIDOCTOR_PDF_VERSION}" \
-  "asciidoctor-revealjs:${ASCIIDOCTOR_REVEALJS_VERSION}" \
-  coderay \
-  epubcheck:3.0.1 \
-  haml \
-  kindlegen:3.0.3 \
-  pygments.rb \
-  rake \
-  rouge \
-  slim \
-  thread_safe \
-  tilt \
-  && apk del -r --no-cache .rubymakedepends curl \
-  #
-  # Installing Python dependencies for additional
-  # functionnalities as diagrams or syntax highligthing
-  &&  apk add --no-cache --virtual .pythonmakedepends \
-  build-base \
-  python2-dev \
-  py2-pip \
-  && pip install --upgrade pip \
-  && pip install --no-cache-dir \
-  actdiag \
-  'blockdiag[pdf]' \
-  nwdiag \
-  Pygments \
-  seqdiag \
-  && apk del -r --no-cache .pythonmakedepends \
-  #
-  # Add non-admin user
-  &&  addgroup --g $USER_GID -S $USERNAME && \
-  adduser --disabled-password \
-  -s /bin/bash \
-  -u $USER_UID \
-  --home "/home/$USERNAME" \
-  -S $USERNAME \
-  -G $USERNAME && \
-  echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers && \
-  chmod 0440 /etc/sudoers
+    "asciidoctor:${ASCIIDOCTOR_VERSION}" \
+    "asciidoctor-diagram:${ASCIIDOCTOR_DIAGRAM_VERSION}" \
+    "asciidoctor-epub3:${ASCIIDOCTOR_EPUB3_VERSION}" \
+    "asciidoctor-mathematical:${ASCIIDOCTOR_MATHEMATICAL_VERSION}" \
+    asciimath \
+    "asciidoctor-pdf:${ASCIIDOCTOR_PDF_VERSION}" \
+    "asciidoctor-revealjs:${ASCIIDOCTOR_REVEALJS_VERSION}" \
+    coderay \
+    epubcheck:3.0.1 \
+    haml \
+    pygments.rb \
+    rake \
+    rouge \
+    slim \
+    thread_safe \
+    tilt \
+  && python3 -m venv /opt/venv \
+  && /opt/venv/bin/pip install --no-cache-dir \
+    actdiag \
+    'blockdiag[pdf]' \
+    nwdiag \
+    Pygments \
+    seqdiag \
+  && touch "/var/mail/${USERNAME}" \
+  && chown "${USERNAME}:${USERNAME}" "/var/mail/${USERNAME}" \
+  && printf '%s ALL=(root) NOPASSWD:ALL\n' "${USERNAME}" > "/etc/sudoers.d/${USERNAME}" \
+  && chmod 0440 "/etc/sudoers.d/${USERNAME}" \
+  && chown -R "${USERNAME}:${USERNAME}" "/home/${USERNAME}" \
+  && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /home/$USERNAME
-VOLUME /home/$USERNAME
+ENV HOME="/home/${USERNAME}"
+USER ${USERNAME}
+WORKDIR /home/${USERNAME}
+VOLUME /home/${USERNAME}
 CMD ["/bin/bash"]
